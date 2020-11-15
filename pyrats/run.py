@@ -43,3 +43,7 @@ def main():
             if event.type == pg.QUIT:
                 # change the value to False, to exit the main loop
                 running = False
+
+
+if __name__ == "__main__":
+    main()
