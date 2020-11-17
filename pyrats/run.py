@@ -22,7 +22,7 @@ def load_image(filename):
     """
     print("loading image %s from %s" % (filename, _get_asset(filename)))
     surface = pg.image.load(_get_asset(filename))
-    return surface.convert()
+    return surface.convert_alpha()
 
 
 ALL_SPRITES = pg.sprite.RenderUpdates()
@@ -37,8 +37,6 @@ class Player(pg.sprite.Sprite):
 
     def move(self, direction):
         self.rect = self.rect.clamp(SCREENRECT)
-
-        print(direction)
 
         xchange, ychange = 0, 0
         if direction == DIRECTION_DOWN:
@@ -95,6 +93,7 @@ def main():
                 running = False
 
         # draw the scene
+        ALL_SPRITES.clear(screen, background)
         dirty = ALL_SPRITES.draw(screen)
         pg.display.update(dirty)
 
