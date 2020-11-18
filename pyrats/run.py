@@ -20,12 +20,41 @@ def load_image(filename):
     return surface.convert_alpha()
 
 
+class Bullet(pg.sprite.Sprite):
+    def __init__(self, start_pos, target):
+        super().__init__(ALL_SPRITES)
+        self.image = load_image("bullet.png")
+        self.rect = self.image.get_rect(center=start_pos)
+        self.target = target
+        self.hit_target = False
+        self.speed = 10
+
+    def update(self, *args, **kwargs) -> None:
+        xchange, ychange = 0, 0
+        if self.rect.center[0] < self.target[0]:
+            xchange = 1
+        if self.rect.center[0] > self.target[0]:
+            xchange = -1
+        if self.rect.center[1] < self.target[1]:
+            ychange = -1
+        if self.rect.center[1] > self.target[1]:
+            ychange = 1
+
+        self.rect.move_ip(self.speed * xchange, self.speed * ychange)
+
+
 class Player(pg.sprite.Sprite):
     def __init__(self):
         super().__init__(ALL_SPRITES)
-        self.image = pg.transform.flip(load_image("black-circle.png"), 1, 0)
+        self.image = load_image("black-circle.png")
         self.speed = 5
         self.rect = self.image.get_rect(midbottom=SCREENRECT.center)
+
+    def shoot(self, target):
+        Bullet(self.rect.center, target)
+
+    def update(self, *args, **kwargs) -> None:
+        self.handle_keystate(pg.key.get_pressed())
 
     def handle_keystate(self, keystate):
         self.rect = self.rect.clamp(SCREENRECT)
@@ -73,8 +102,7 @@ def main():
 
             if event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    # left click
-                    print("meow")
+                    player.shoot(pg.mouse.get_pos())
                 if event.button == 3:
                     # right click
                     print("purr")
@@ -84,11 +112,9 @@ def main():
                 # change the value to False, to exit the main loop
                 running = False
 
-        # see if the player is pressing WASD
-        player.handle_keystate(pg.key.get_pressed())
-
         # draw the scene
         ALL_SPRITES.clear(screen, background)
+        ALL_SPRITES.update()
         dirty = ALL_SPRITES.draw(screen)
         pg.display.update(dirty)
 
