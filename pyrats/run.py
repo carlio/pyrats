@@ -4,12 +4,7 @@ import os
 
 
 SCREENRECT = pg.Rect(0, 0, 640, 800)
-
-
-DIRECTION_UP = 1
-DIRECTION_DOWN = 2
-DIRECTION_LEFT = 4
-DIRECTION_RIGHT = 8
+ALL_SPRITES = pg.sprite.RenderUpdates()
 
 
 def _get_asset(filename):
@@ -25,30 +20,31 @@ def load_image(filename):
     return surface.convert_alpha()
 
 
-ALL_SPRITES = pg.sprite.RenderUpdates()
-
-
 class Player(pg.sprite.Sprite):
     def __init__(self):
         super().__init__(ALL_SPRITES)
         self.image = pg.transform.flip(load_image("black-circle.png"), 1, 0)
-
+        self.speed = 5
         self.rect = self.image.get_rect(midbottom=SCREENRECT.center)
 
-    def move(self, direction):
+    def handle_keystate(self, keystate):
         self.rect = self.rect.clamp(SCREENRECT)
 
         xchange, ychange = 0, 0
-        if direction == DIRECTION_DOWN:
-            ychange = 1
-        elif direction == DIRECTION_UP:
-            ychange = -1
-        if direction == DIRECTION_LEFT:
-            xchange = -1
-        elif direction == DIRECTION_RIGHT:
-            xchange = 1
+        if keystate[pg.K_w]:
+            # W -> up
+            ychange -= 1
+        if keystate[pg.K_a]:
+            # A -> left
+            xchange -= 1
+        if keystate[pg.K_s]:
+            # S -> down
+            ychange += 1
+        if keystate[pg.K_d]:
+            # D -> right
+            xchange += 1
 
-        self.rect.move_ip(xchange, ychange)
+        self.rect.move_ip(self.speed * xchange, self.speed * ychange)
 
 
 def main():
@@ -74,10 +70,6 @@ def main():
     while running:
         # event handling, gets all event from the event queue
         for event in pg.event.get():
-            if event.type == pg.TEXTINPUT:
-                key = event.text.lower()
-                direction = {"w": DIRECTION_UP, "a": DIRECTION_LEFT, "s": DIRECTION_DOWN, "d": DIRECTION_RIGHT}[key]
-                player.move(direction)
 
             if event.type == pg.MOUSEBUTTONDOWN:
                 if event.button == 1:
@@ -91,6 +83,9 @@ def main():
             if event.type == pg.QUIT:
                 # change the value to False, to exit the main loop
                 running = False
+
+        # see if the player is pressing WASD
+        player.handle_keystate(pg.key.get_pressed())
 
         # draw the scene
         ALL_SPRITES.clear(screen, background)
