@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import pygame as pg
 import os
+import math
 
 
 SCREENRECT = pg.Rect(0, 0, 640, 800)
@@ -12,35 +13,41 @@ def _get_asset(filename):
     return os.path.join(assets_dir, filename)
 
 
+IMAGE_CACHE = {}
+
+
 def load_image(filename):
-    """ loads an image, prepares it for play
-    """
-    print("loading image %s from %s" % (filename, _get_asset(filename)))
+    surface = IMAGE_CACHE.get(filename)
+    if surface is not None:
+        return surface
+
     surface = pg.image.load(_get_asset(filename))
+    IMAGE_CACHE[filename] = surface
+
     return surface.convert_alpha()
 
 
 class Bullet(pg.sprite.Sprite):
     def __init__(self, start_pos, target):
+        # note https://github.com/mgold/Python-snippets/blob/master/pygame_angles.py
         super().__init__(ALL_SPRITES)
         self.image = load_image("bullet.png")
         self.rect = self.image.get_rect(center=start_pos)
-        self.target = target
-        self.hit_target = False
-        self.speed = 10
+
+        xchange = target[0] - start_pos[0]
+        ychange = target[1] - start_pos[1]
+        rads = math.atan2(ychange, xchange)
+        rads %= 2 * math.pi
+        angle = math.degrees(rads)
+
+        offset = pg.math.Vector2(32, 0).rotate(angle)  # start from the edge of the circle
+        self.pos = pg.math.Vector2(start_pos) + offset
+        self.velocity = pg.math.Vector2(5, 0)
+        self.velocity.rotate_ip(angle)
 
     def update(self, *args, **kwargs) -> None:
-        xchange, ychange = 0, 0
-        if self.rect.center[0] < self.target[0]:
-            xchange = 1
-        if self.rect.center[0] > self.target[0]:
-            xchange = -1
-        if self.rect.center[1] < self.target[1]:
-            ychange = -1
-        if self.rect.center[1] > self.target[1]:
-            ychange = 1
-
-        self.rect.move_ip(self.speed * xchange, self.speed * ychange)
+        self.pos += self.velocity
+        self.rect.center = self.pos
 
 
 class Player(pg.sprite.Sprite):
@@ -78,15 +85,12 @@ class Player(pg.sprite.Sprite):
 
 def main():
     pg.init()
-    pg.display.set_caption("Pyrats")
+    pg.display.set_caption("PyRats")
 
     screen = pg.display.set_mode(SCREENRECT.size)
-
-    # create the background, tile the bgd image
-    bgdtile = load_image("cat.jpg")
     background = pg.Surface(SCREENRECT.size)
-    for x in range(0, SCREENRECT.width, bgdtile.get_width()):
-        background.blit(bgdtile, (x, 0))
+    background.fill((255, 255, 255))
+
     screen.blit(background, (0, 0))
     pg.display.flip()
 
@@ -101,12 +105,9 @@ def main():
         for event in pg.event.get():
 
             if event.type == pg.MOUSEBUTTONDOWN:
-                if event.button == 1:
+                if event.button == 1:  # left click
                     player.shoot(pg.mouse.get_pos())
-                if event.button == 3:
-                    # right click
-                    print("purr")
-                print(event.pos)
+                # if event.button == 3: # right click
 
             if event.type == pg.QUIT:
                 # change the value to False, to exit the main loop
@@ -118,8 +119,10 @@ def main():
         dirty = ALL_SPRITES.draw(screen)
         pg.display.update(dirty)
 
-        # cap the framerate at 40fps
-        clock.tick(40)
+        # fix the framerate
+        clock.tick(100)
+
+    pg.quit()
 
 
 if __name__ == "__main__":
